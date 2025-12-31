@@ -80,7 +80,7 @@ const App: React.FC = () => {
 
           {/* Main Map Tile (Bento Large) */}
           <div className="col-span-12 lg:col-span-8">
-            <FarmMap />
+            <FarmMap alerts={kafkaAlerts} />
           </div>
 
           {/* Alert Feed (Bento Vertical) */}
@@ -100,7 +100,7 @@ const App: React.FC = () => {
 
           {/* AI Reasoning (Bento Small/Wide) */}
           <div className="col-span-12 lg:col-span-8">
-            <AIReasoning currentStep={aiStep} />
+            <AIReasoning currentStep={aiStep} latestPrediction={latestPrediction} />
           </div>
 
         </div>

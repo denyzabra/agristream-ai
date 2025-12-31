@@ -44,7 +44,9 @@ const HeroMetricBar: React.FC<{ health: number; alerts: number; farms: number; p
           <h1 className="text-lg font-bold tracking-tight text-white flex items-center gap-2">
             AgriStream <span className="text-cyan-400">AI</span>
           </h1>
-          <p className="text-[10px] uppercase font-mono text-gray-500 tracking-widest">Global Network Active • 2035.08.12</p>
+          <p className="text-[10px] uppercase font-mono text-gray-500 tracking-widest">
+            Global Network Active • {new Date().toLocaleDateString('en-GB')}
+          </p>
         </div>
       </div>
 
@@ -55,18 +57,10 @@ const HeroMetricBar: React.FC<{ health: number; alerts: number; farms: number; p
         <div className="h-8 w-px bg-white/10" />
         <Metric label="Farms Monitored" value={farms} color="#00f5ff" />
         <div className="h-8 w-px bg-white/10" />
-        <Metric label="Today's AI Predictions" value={predictions} color="#a855f7" />
+        <Metric label="Today's Predictions" value={predictions} color="#a855f7" />
       </div>
 
       <div className="flex items-center gap-4">
-        <div className="flex -space-x-2">
-          {[1,2,3].map(i => (
-            <img key={i} src={`https://picsum.photos/seed/${i+40}/32/32`} className="w-8 h-8 rounded-full border-2 border-[#0a0f1a] bg-slate-800" />
-          ))}
-          <div className="w-8 h-8 rounded-full border-2 border-[#0a0f1a] bg-slate-800 flex items-center justify-center text-[10px] font-bold">
-            +12
-          </div>
-        </div>
         <button className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-xs font-medium transition-all">
           Command Panel
         </button>

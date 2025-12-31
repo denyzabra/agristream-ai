@@ -15,8 +15,12 @@ from confluent_kafka import Consumer, Producer, KafkaError
 from dotenv import load_dotenv
 import os
 from typing import AsyncGenerator
+from services.gemini_service import GeminiService
 
 load_dotenv('../.env')
+
+# Initialize Gemini AI service
+gemini_service = GeminiService()
 
 app = FastAPI(title="AgriStream AI Backend")
 
@@ -45,6 +49,7 @@ KAFKA_CONFIG = {
 async def kafka_stream_generator(topic: str, transform_fn=None) -> AsyncGenerator:
     """
     Generic Kafka consumer that yields SSE events
+    Supports both sync and async transform functions
     """
     consumer = Consumer(KAFKA_CONFIG)
     consumer.subscribe([topic])
@@ -64,13 +69,26 @@ async def kafka_stream_generator(topic: str, transform_fn=None) -> AsyncGenerato
                     print(f"Consumer error: {msg.error()}")
                     continue
 
+            # Skip messages with no value (control messages, etc.)
+            if msg.value() is None:
+                continue
+
             try:
                 # Parse JSON message
-                data = json.loads(msg.value().decode('utf-8'))
+                # Skip Schema Registry header (first 5 bytes) if present
+                msg_bytes = msg.value()
+                if len(msg_bytes) > 5 and msg_bytes[0] == 0:
+                    # Schema Registry format: skip magic byte (1) + schema ID (4)
+                    msg_bytes = msg_bytes[5:]
 
-                # Transform data if needed
+                data = json.loads(msg_bytes.decode('utf-8'))
+
+                # Transform data if needed (support async transforms)
                 if transform_fn:
-                    data = transform_fn(data)
+                    if asyncio.iscoroutinefunction(transform_fn):
+                        data = await transform_fn(data)
+                    else:
+                        data = transform_fn(data)
 
                 # Yield as SSE event
                 yield {
@@ -101,9 +119,10 @@ def transform_sensor_reading(data: dict) -> dict:
     }
 
 
-def transform_outbreak_prediction(data: dict) -> dict:
-    """Transform outbreak prediction for frontend"""
-    return {
+async def transform_outbreak_prediction(data: dict) -> dict:
+    """Transform outbreak prediction for frontend with Gemini AI enrichment"""
+    # Base transformation
+    result = {
         "sensorId": data.get("sensor_id"),
         "farmId": data.get("farm_id"),
         "location": data.get("location"),
@@ -114,6 +133,27 @@ def transform_outbreak_prediction(data: dict) -> dict:
         "recommendation": data.get("recommendation"),
         "timestamp": data.get("detection_timestamp")
     }
+
+    # Enrich with Gemini AI for high-risk predictions (score > 50)
+    risk_score = data.get("risk_score", 0)
+    if risk_score > 50:
+        try:
+            ai_analysis = await gemini_service.analyze_outbreak(data, risk_score)
+
+            # Add AI fields to response
+            result.update({
+                "aiPestType": ai_analysis.get("pest_type"),
+                "aiConfidence": ai_analysis.get("confidence"),
+                "aiReasoning": ai_analysis.get("reasoning"),
+                "aiRecommendation": ai_analysis.get("recommendation"),
+                "aiGenerated": ai_analysis.get("ai_generated", False)
+            })
+        except Exception as e:
+            print(f"[Gemini] Enrichment failed: {e}")
+            # Graceful degradation - return prediction without AI
+            result["aiGenerated"] = False
+
+    return result
 
 
 def transform_farmer_alert(data: dict) -> dict:

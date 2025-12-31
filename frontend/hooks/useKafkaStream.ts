@@ -107,6 +107,13 @@ export interface OutbreakPrediction {
   humidity: number;
   recommendation: string;
   timestamp: string;
+
+  // Gemini AI fields (optional)
+  aiPestType?: string;
+  aiConfidence?: number;
+  aiReasoning?: string;
+  aiRecommendation?: string;
+  aiGenerated?: boolean;
 }
 
 export interface FarmerAlert {
@@ -120,6 +127,10 @@ export interface FarmerAlert {
   riskScore: number;
   priority: string;
   actionRequired: string;
+
+  // Gemini AI fields (optional)
+  aiPestType?: string;
+  aiRecommendation?: string;
 }
 
 export function useSensorStream() {
